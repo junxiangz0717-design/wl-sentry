@@ -13,12 +13,12 @@ public:
     SendProcess() : Node("send_process")
     {
         this->cmd_vel_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
-            "/cmd_vel_virtual", 1, 
+            "/cmd_vel", 1, 
             std::bind(&SendProcess::CmdVelCallback, this, std::placeholders::_1));
 
         // 线速度
         this->serial_send_data_.vx = 0.0f;
-        this->serial_send_data_.vy = 0.0f;
+        // this->serial_send_data_.vy = 0.0f;
         this->serial_send_data_.wz = 0.0f;
     }
 
@@ -27,11 +27,11 @@ public:
     void CmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg)
     {
         this->serial_send_data_.vx = -msg->linear.x; 
-        this->serial_send_data_.vy = msg->linear.y; 
+        // this->serial_send_data_.vy = msg->linear.y; 
         this->serial_send_data_.wz = msg->angular.z; 
-        RCLCPP_INFO(this->get_logger(), "发送串口速度: vx=%.2f, vy=%.2f, wz=%.2f", 
+        RCLCPP_INFO(this->get_logger(), "发送串口速度: vx=%.2f, wz=%.2f", 
                     this->serial_send_data_.vx, 
-                    this->serial_send_data_.vy, 
+                    // this->serial_send_data_.vy, 
                     this->serial_send_data_.wz);
         serialdata.zh_write(this->serial_send_data_);
     }

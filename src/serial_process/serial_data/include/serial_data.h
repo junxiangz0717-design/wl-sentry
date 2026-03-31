@@ -50,7 +50,7 @@ struct SendData
     uint8_t head = 0x99;            // 帧头
     float wz;                       // 路径规划模式下的角速度z 
     float vx;                       // 路径规划模式下的线速度x          
-    float vy;                       // 路径规划模式下的线速度y
+    // float vy;                       // 路径规划模式下的线速度y
     uint16_t end;          // 尾帧启用CRC16校验
 };
 #pragma pack()
