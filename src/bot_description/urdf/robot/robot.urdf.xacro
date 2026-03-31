@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="robot">
+<!-- 基础部分 robot -->
+<xacro:include filename="$(find bot_description)/urdf/robot/base.urdf.xacro"/>
+<!-- 插件 -->
+<xacro:include filename="$(find bot_description)/urdf/robot/plugins/gazebo_control_plugin.xacro"/>
+
+<!-- <xacro:include filename="$(find ros2_livox_simulation)/urdf/mid360.xacro" />
+<xacro:mid360 name="livox" parent="base_link" topic="mid360">
+    <origin xyz="0 0 0.35" rpy="0 0 0"/>
+</xacro:mid360> -->
+
+<xacro:robot />
+
+<xacro:gazebo_control_plugin />
+
+</robot>

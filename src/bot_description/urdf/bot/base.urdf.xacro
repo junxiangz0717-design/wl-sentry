@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" >
+    <xacro:include filename="$(find bot_description)/urdf/bot/common_inertia.xacro"/>
+
+    <xacro:macro name="base_xacro" params="x y z">
+        <!-- 机器人的身体部分 -->
+        <link name="base_link">
+            <!-- 部件的外观描述 -->
+            <visual>
+                <!-- 沿着自己几何中心的偏移和旋转量 -->
+                <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+                <!-- 几何形状 -->
+                <geometry> 
+                    <box size="${x} ${y} ${z}"/>
+                </geometry>
+                <!-- 材质颜色 -->
+                <material name="red"> 
+                    <color rgba="1.0 0.0 0.0 1.0"/>
+                </material>
+            </visual>
+            <collision>
+               <!-- 沿着自己几何中心的偏移和旋转量 -->
+                <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+                <!-- 几何形状 -->
+                <geometry> 
+                    <box size="${x} ${y} ${z}"/>
+                </geometry>
+                <!-- 材质颜色 -->
+                <material name="red"> 
+                    <color rgba="1.0 0.0 0.0 1.0"/>
+                </material>
+            </collision>
+
+            <xacro:box_inertia m="1.0" w="${x}" h="${y}" d="${z}" />
+        </link>
+
+        <!-- 机器人的虚拟部件，对地面的投影 -->
+        <link name="base_footprint" />
+
+        <joint name="base_link_joint" type="fixed">
+            <origin xyz="0.0 0.0 ${z/2.0+0.032-0.001}" rpy="0.0 0.0 0.0"/>
+            <parent link="base_footprint"/>
+            <child link="base_link"/>
+        </joint>
+        <gazebo reference='base_link'>
+            <material>Gazebo/Red</material>
+        </gazebo>
+    </xacro:macro>
+    
+</robot>

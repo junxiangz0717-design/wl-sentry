@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="bot">
+<xacro:arg name="gpu" default="false"/>
+<xacro:property name="gpu" value="$(arg gpu)" />
+<xacro:arg name="organize_cloud" default="false"/>
+<xacro:property name="organize_cloud" value="$(arg organize_cloud)" />
+<!-- 基础部分 base_link -->
+<xacro:include filename="$(find bot_description)/urdf/bot/base.urdf.xacro"/>
+<!-- 传感器部分 -->
+<xacro:include filename="$(find bot_description)/urdf/bot/sensor/camera.urdf.xacro"/>
+<!-- 执行器部分 -->
+<xacro:include filename="$(find bot_description)/urdf/bot/actuator/wheel.urdf.xacro"/>
+<!-- 插件 -->
+<xacro:include filename="$(find bot_description)/urdf/bot/plugins/gazebo_control_plugin.xacro"/>
+<xacro:include filename="$(find bot_description)/urdf/bot/plugins/gazebo_sensor_plugin.xacro"/>
+
+
+<xacro:base_xacro x="0.20" y="0.16" z="0.05" />
+
+<xacro:camera_xacro xyz="0.08 0.0 0.04" />
+
+<xacro:wheel_xacro wheel_name="front_left_wheel" xyz="0.06 0.09 -0.03" />
+<xacro:wheel_xacro wheel_name="front_right_wheel" xyz="0.06 -0.09 -0.03" />
+<xacro:wheel_xacro wheel_name="back_left_wheel" xyz="-0.06 0.09 -0.03" />
+<xacro:wheel_xacro wheel_name="back_right_wheel" xyz="-0.06 -0.09 -0.03" />
+
+<xacro:gazebo_control_plugin />
+<xacro:gazebo_sensor_plugin />
+
+<xacro:include filename="$(find velodyne_description)/urdf/VLP-16.urdf.xacro"/>
+<xacro:VLP-16 parent="base_link" name="velodyne" topic="/velodyne_points" hz="10" samples="440" gpu="${gpu}">
+    <origin xyz="0 0 0.025" rpy="0 0 0" />
+</xacro:VLP-16>
+
+</robot>
