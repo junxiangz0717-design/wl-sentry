@@ -1,9 +1,12 @@
 /**
  * @file serial_port.cpp
- * @author 张俊翔(junxiangz0717@gmail.com)
- * @brief 串口设备的自动发现、打开配置以及读写封装实现
- * @date 2026-02-25
- * @copyright Copyright SCUT RobotLab(c) 2026
+ * @author 杨泽霖 (scut.bigeyoung@qq.com)
+ * @brief Linux串口类
+ * @version 2.0
+ * @date 2018-12-08
+ *
+ * @copyright Copyright South China Tiger(c) 2018
+ *
  */
 
 #include <cstring>
@@ -12,109 +15,95 @@
 #include <fcntl.h>
 #include <string>
 #include <unistd.h>
-#include <rclcpp/rclcpp.hpp>
 
+#include "serial_logging.h"
 #include "serial_port.h"
 
 using namespace std;
 
 /**
- * @brief 自动搜索并打开匹配的串口设备
- * @details 遍历 /dev/ 目录，寻找名称包含 open_target_ (如 ttyACM) 的第一个设备并配置波特率。
- * @return true 成功打开并配置，false 找不到设备或配置失败
+ * @brief Open the serial port, search all available devices automatically and try to open the first
  */
 bool SerialPort::open()
 {
-    is_open_ = false;
+    __is_open = false;
 
     DIR *dir = nullptr;
     struct dirent *dire = nullptr;
-    file_name_.clear();
+    file_name.clear();
     const char *dir_path = "/dev/";
-
-    // 1. 扫描设备目录，寻找匹配的串口设备
     if ((dir = opendir(dir_path)) != nullptr)
     {
         while ((dire = readdir(dir)) != nullptr)
         {
-            if ((strstr(dire->d_name, open_target_.c_str()) != nullptr))
+            if ((strstr(dire->d_name, open_target.c_str()) != nullptr))
             {
-                file_name_ = dire->d_name;
+                file_name = dire->d_name;
                 break;
             }
         }
         closedir(dir);
     }
 
-    if (file_name_.empty())
+    if (file_name.empty())
     {
-        RCLCPP_ERROR(rclcpp::get_logger("serial_port"), "无法在 /dev 中找到匹配 '%s' 的设备", open_target_.c_str());
+        SER_ERROR("无法在/dev中找到/*%s*", open_target.c_str());
         return false;
     }
     else
-        file_name_ = dir_path + file_name_;
+        file_name = dir_path + file_name;
 
-    RCLCPP_INFO(rclcpp::get_logger("serial_port"), "正在打开串口: %s ...", file_name_.c_str());
+    SER_INFO("正在打开串口: %s……", file_name.c_str());
+    __fd = ::open(file_name.c_str(), O_RDWR | O_NOCTTY | O_NDELAY); // 非堵塞情况
 
-    // 2. 调用系统底层 open 使用 O_NOCTTY 防止设备成为控制终端，O_NDELAY 启用非阻塞模式
-    fd_ = ::open(file_name_.c_str(), O_RDWR | O_NOCTTY | O_NDELAY);
-
-    if (fd_ == -1)
+    if (__fd == -1)
     {
-        RCLCPP_ERROR(rclcpp::get_logger("serial_port"), "打开串口 %s 失败: %s", file_name_.c_str(), strerror(errno));
+        SER_ERROR("打开串口%s失败！", file_name.c_str());
+        perror(file_name.c_str());
         return false;
     }
-
-    // 3. 配置 termios 属性
-    tcgetattr(fd_, &option_);
+    tcgetattr(__fd, &__option);
 
     // 修改所获得的参数
-    option_.c_iflag = 0;                 // 原始输入模式
-    option_.c_oflag = 0;                 // 原始输出模式
-    option_.c_lflag = 0;                 // 关闭终端模式
-    option_.c_cflag |= (CLOCAL | CREAD); // 设置控制模式状态，本地连接，接收使能
-    option_.c_cflag &= ~CSIZE;           // 字符长度，设置数据位之前一定要屏掉这个位
-    option_.c_cflag &= ~CRTSCTS;         // 清除字符长度位
-    option_.c_cflag |= CS8;              // 8位数据长度
-    option_.c_cflag &= ~CSTOPB;          // 1位停止位
-    option_.c_cc[VTIME] = 0;             // 非规范模式下的读取超时
-    option_.c_cc[VMIN] = 0;              // 非规范模式下的最小读取字符
+    __option.c_iflag = 0;                 // 原始输入模式
+    __option.c_oflag = 0;                 // 原始输出模式
+    __option.c_lflag = 0;                 // 关闭终端模式
+    __option.c_cflag |= (CLOCAL | CREAD); // 设置控制模式状态，本地连接，接收使能
+    __option.c_cflag &= ~CSIZE;           // 字符长度，设置数据位之前一定要屏掉这个位
+    __option.c_cflag &= ~CRTSCTS;         // 无硬件流控
+    __option.c_cflag |= CS8;              // 8位数据长度
+    __option.c_cflag &= ~CSTOPB;          // 1位停止位
+    __option.c_cc[VTIME] = 0;
+    __option.c_cc[VMIN] = 0;
+    cfsetospeed(&__option, __baud_rate); // 设置输入波特率
+    cfsetispeed(&__option, __baud_rate); // 设置输出波特率
 
-    cfsetospeed(&option_, baud_rate_); // 设置输出波特率
-    cfsetispeed(&option_, baud_rate_); // 设置输入波特率
+    // 设置新属性，TCSANOW：所有改变立即生效
+    tcsetattr(__fd, TCSANOW, &__option);
 
-    // 4. 应用设置 TCSANOW 表示立即生效
-    if (tcsetattr(fd_, TCSANOW, &option_) != 0)
-    {
-        RCLCPP_ERROR(rclcpp::get_logger("serial_port"), "设置串口属性失败！");
-        return false;
-    }
+    __is_open = true;
 
-    is_open_ = true;
-
-    RCLCPP_INFO(rclcpp::get_logger("serial_port"), "成功打开串口: %s", file_name_.c_str());
+    SER_PASS("成功打开串口: %s", file_name.c_str());
     return true;
 }
 
 /**
- * @brief 关闭串口并清理文件描述符
+ * @brief Close the serial port
  */
 void SerialPort::close()
 {
-    if (is_open_)
-    {
-        ::close(fd_);
-        is_open_ = false;
-        RCLCPP_INFO(rclcpp::get_logger("serial_port"), "串口 %s 已关闭", file_name_.c_str());
-    }
+    if (__is_open)
+        ::close(__fd);
+    __is_open = false;
 }
 
 /**
- * @brief 8位 CRC 校验算法
- * @param _data 数据起始指针
- * @param length 需要校验的长度
- * @param polynomial 校验码，默认 0x31
- * @return uint8_t 校验和 (结果为 0 通常表示校验成功)
+ * @brief 8位CRC校验
+ *
+ * @param _data 数据指针
+ * @param length 数据长度
+ * @param polynomial 校验码
+ * @return uint8_t 校验和
  */
 uint8_t SerialPort::CRC8(const void *_data, uint16_t length, uint8_t polynomial)
 {
@@ -139,73 +128,69 @@ uint8_t SerialPort::CRC8(const void *_data, uint16_t length, uint8_t polynomial)
 }
 
 /**
- * @brief 向串口写入原始字节流
- * @param data 发送数据指针
- * @param length 发送长度
- * @return ssize_t 实际写入长度，失败返回 -1
+ * @brief Write data
+ *
+ * @param data Start position of the data
+ * @param length The length of the data to be written
+ * @return Whether to write in full
  */
 ssize_t SerialPort::write(void *data, size_t length)
 {
     ssize_t len_result = -1;
-    if (is_open_)
+    if (__is_open)
     {
-        tcflush(fd_, TCOFLUSH); // 清空输出缓冲区，确保数据实时性
-        len_result = ::write(fd_, data, length);
+        tcflush(__fd, TCOFLUSH);                  // 清空，防止数据累积在缓存区，在<termios.h>中
+        len_result = ::write(__fd, data, length); // ::write在<unistd.h>中
     }
 
     if (len_result != static_cast<ssize_t>(length))
     {
-        RCLCPP_ERROR(rclcpp::get_logger("serial_port"), "无法写入串口%s，重新打开中...", file_name_.c_str());
+        SER_ERROR("无法写入串口%s，重新打开中...", file_name.c_str());
         open();
     }
     else
-        RCLCPP_WARN(rclcpp::get_logger("serial_port"), "数据写入%s成功", file_name_.c_str());
+        SER_WARNING("数据写入%s成功", file_name.c_str());
 
     return len_result;
 }
 
 /**
- * @brief 从串口读取原始字节流
- * @param data 接收缓冲区指针
- * @param len 期望读取长度
- * @return ssize_t 实际读取长度
+ * @brief Read data
+ *
+ * @param data Start position of the data
+ * @param len The length of the data to be read
+ * @return Length
  */
 ssize_t SerialPort::read(void *data, size_t len)
 {
     static int failure_times;
     ssize_t len_result = -1;
-
-    if (is_open_)
+    /*
+        ::read：这里使用了全局作用域解析运算符 ::，
+        表示调用全局命名空间中的 read 函数，而不是可能存在于局部作用域的同名函数。
+        read 函数是用于从文件描述符中读取数据的 POSIX 函数。
+    */
+    if (__is_open)
     {
-        len_result = ::read(fd_, data, len);
-        tcflush(fd_, TCIFLUSH); // 刷新输入缓冲区
+        // 成功读取的字节数赋给 len_result
+        len_result = ::read(__fd, data, len);
+        tcflush(__fd, TCIFLUSH); // tcflush 是一个与终端设备（terminal device）相关的函数，用于刷新终端设备的输入或输出缓冲区。这个函数通常用于串口通信或终端操作。
     }
 
     if (len_result == -1)
     {
         failure_times++;
-        RCLCPP_ERROR_THROTTLE(rclcpp::get_logger("serial_port"), *rclcpp::Clock::make_shared(), 1000,
-                              "串口 %s 不可读取，错误原因: %s", file_name_.c_str(), strerror(errno));
         if (failure_times > 20)
         {
             failure_times = 0;
             // system("rosnode kill /receive_process /send_process");
         }
+        SER_ERROR("串口%s不可读取，将重新打开……", file_name.c_str());
         open();
     }
-    else if (len_result == 0)
+    else if (len_result >0)
     {
-        failure_times++;
-        RCLCPP_WARN_THROTTLE(rclcpp::get_logger("serial_port"), *rclcpp::Clock::make_shared(), 1000,
-                             "读取串口 %s 内容为空", file_name_.c_str());
-        if (failure_times > 20)
-        {
-            failure_times = 0;
-            // system("rosnode kill /receive_process /send_process");
-        }
-        // open();
+        SER_PASS("读取串口%s成功", file_name.c_str());
     }
-    else
-        RCLCPP_INFO(rclcpp::get_logger("serial_port"), "读取串口%s成功", file_name_.c_str());
     return len_result;
 }
