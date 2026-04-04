@@ -15,7 +15,7 @@ def generate_launch_description():
     use_sim_time = launch.substitutions.LaunchConfiguration(
         'use_sim_time', default='true')
     map_yaml_path = launch.substitutions.LaunchConfiguration(
-        'map', default=os.path.join(bot_navigation2_dir, 'map', 'rmuc2026.yaml'))
+        'map', default=os.path.join(bot_navigation2_dir, 'map', 'qingqing2026.yaml'))
     nav2_param_path = launch.substitutions.LaunchConfiguration(
         'params_file', default=os.path.join(bot_navigation2_dir, 'config', 'nav2_params.yaml'))
 
@@ -33,10 +33,34 @@ def generate_launch_description():
             executable='static_transform_publisher',
             name='static_transform_publisher',
             arguments=[
-                '3.95', '7.5', '0',
+                '1.2', '-1.7', '0',
                 '0', '0', '0',
                 'map',
                 'odom'
+            ],
+            parameters=[{'use_sim_time': use_sim_time}],
+        ),
+        launch_ros.actions.Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            name='static_transform_publisher_base_to_odin1',
+            arguments=[
+                '0', '0', '0',               
+                '-2.673', '0.407', '-1.905', 
+                'odin1_base_link',          
+                'odin1'                      
+            ],
+            parameters=[{'use_sim_time': use_sim_time}],
+        ),
+        launch_ros.actions.Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            name='static_transform_publisher_base_to_odin1',
+            arguments=[
+                '0', '0', '0',               
+                '0', '0', '0', 
+                'odin1',          
+                'base_link'                      
             ],
             parameters=[{'use_sim_time': use_sim_time}],
         ),
