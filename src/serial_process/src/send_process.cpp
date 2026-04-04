@@ -26,8 +26,9 @@ public:
 
     void CmdVelCallback(const geometry_msgs::msg::Twist::SharedPtr msg)
     {
-        this->serial_send_data_.vx = -msg->linear.x; 
+        this->serial_send_data_.vx = msg->linear.x; 
         // this->serial_send_data_.vy = msg->linear.y; 
+        this->serial_send_data_.spin_mode = 0;
         this->serial_send_data_.wz = msg->angular.z; 
         RCLCPP_INFO(this->get_logger(), "发送串口速度: vx=%.2f, wz=%.2f", 
                     this->serial_send_data_.vx, 

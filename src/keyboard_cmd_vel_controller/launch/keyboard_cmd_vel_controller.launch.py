@@ -12,9 +12,9 @@ def generate_launch_description():
             emulate_tty=True,
             parameters=[{
                 'linear_step': 0.1,
-                'angular_step': 0.1,
+                'angular_step': 0.09,
                 'max_linear_speed': 2.0,
-                'max_angular_speed': 2.0,
+                'max_angular_speed': 0.36,
                 'publish_rate': 20.0,
             }],
         )

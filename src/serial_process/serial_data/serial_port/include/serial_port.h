@@ -33,7 +33,7 @@
 class SerialPort
 {
     std::string file_name;              // 实际打开的串口设备名称
-    std::string open_target = "ttyACM"; // 用于匹配的目标打开串口名称
+    std::string open_target = "ttyUSB"; // 用于匹配的目标打开串口名称
 
     termios __option;       //!< 终端控制
     int __fd;               //!< 文件描述符
