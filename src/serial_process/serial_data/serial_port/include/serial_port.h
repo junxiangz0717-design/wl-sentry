@@ -44,9 +44,9 @@ public:
     /**
      * @brief 构造串口对象时，重复试打开目标串口直到打开成功
      *
-     * @param baud_rate 波特率，默认B 200 0000
+     * @param baud_rate 波特率，默认B 100 0000
      */
-    explicit SerialPort(int baud_rate = B921600) : __baud_rate(baud_rate)
+    explicit SerialPort(int baud_rate = B1000000) : __baud_rate(baud_rate)
     { while(!open()){} }
 
     /**

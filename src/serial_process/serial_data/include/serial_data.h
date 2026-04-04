@@ -50,7 +50,8 @@ struct SendData
     uint8_t head = 0x99;            // 帧头
     uint8_t spin_mode;              // 小陀螺 0关1开
     float wz;                       // 路径规划模式下的角速度z 
-    float vx;                       // 路径规划模式下的线速度x          
+    float vx;                       // 路径规划模式下的线速度x  
+    uint8_t length_leg;             // 腿部长度 0 1 2 3
     // float vy;                       // 路径规划模式下的线速度y
     uint16_t end;          // 尾帧启用CRC16校验
 };

@@ -18,6 +18,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/AutoaimToDecision.msg"
   "msg/DecisionToAutoaim.msg"
   "msg/DecisonSendData.msg"
+  "msg/KeyboardControl.msg"
   "msg/PursuitData.msg"
   "msg/Pursuit.msg"
   "msg/ReceiveData.msg"

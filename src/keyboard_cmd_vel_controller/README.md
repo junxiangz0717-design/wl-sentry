@@ -1,16 +1,19 @@
 # keyboard_cmd_vel_controller
 
-一个基于 ROS2 Humble 和 C++ 的键盘控制功能包，用于向 `/cmd_vel` 发布 `geometry_msgs/msg/Twist` 控制小车运动。
+一个基于 ROS2 Humble 和 C++ 的键盘控制功能包，用于向 `/cmd_vel` 发布 `geometry_msgs/msg/Twist` 控制小车运动，并向 `/keyboard_control` 发布底盘附加控制标志位。
 
 ## 功能说明
 
 - `w` / `s`：前进 / 后退
 - `a` / `d`：左移 / 右移
 - `q` / `e`：左旋 / 右旋
+- `r`：切换 `spin_mode`，`0` 关 / `1` 开
+- `0` / `1` / `2` / `3`：设置 `length_leg`
 - `space`：立即刹车，所有速度清零
 - 同一个方向连续按键会持续累加速度
 - 任意时刻只会有一个方向生效
 - 切换到其他方向时，之前的线速度和角速度全部清零
+- `/keyboard_control` 话题类型为 `msg_process/msg/KeyboardControl`
 
 默认步进参数：
 
@@ -24,7 +27,7 @@
 ```bash
 cd ~/test_ws
 source /opt/ros/humble/setup.bash
-colcon build --packages-select keyboard_cmd_vel_controller
+colcon build --packages-up-to keyboard_cmd_vel_controller
 source install/setup.bash
 ```
 

@@ -9,6 +9,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(msg_process REQUIRED)
 
 add_executable(keyboard_cmd_vel_node
   src/keyboard_cmd_vel_controller.cpp
@@ -17,6 +18,7 @@ add_executable(keyboard_cmd_vel_node
 ament_target_dependencies(keyboard_cmd_vel_node
   rclcpp
   geometry_msgs
+  msg_process
 )
 
 target_compile_features(keyboard_cmd_vel_node PUBLIC cxx_std_17)

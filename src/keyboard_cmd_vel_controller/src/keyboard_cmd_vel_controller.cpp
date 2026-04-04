@@ -1,4 +1,5 @@
 #include <geometry_msgs/msg/twist.hpp>
+#include <msg_process/msg/keyboard_control.hpp>
 #include <rclcpp/rclcpp.hpp>
 
 #include <algorithm>
@@ -108,12 +109,15 @@ public:
     publish_rate_ = declare_parameter("publish_rate", 10.0);
 
     publisher_ = create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
+    const auto control_qos = rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local();
+    control_publisher_ =
+      create_publisher<msg_process::msg::KeyboardControl>("/keyboard_control", control_qos);
     publish_timer_ = create_wall_timer(
       std::chrono::duration<double>(1.0 / publish_rate_),
       [this]() { publishCurrentTwist(); });
 
     printHelp();
-    publishCurrentTwist();
+    publishCurrentState();
   }
 
   void handleKey(char key)
@@ -146,11 +150,21 @@ public:
       case ' ':
         brake();
         break;
+      case 'r':
+      case 'R':
+        toggleSpinMode();
+        break;
+      case '0':
+      case '1':
+      case '2':
+      case '3':
+        setLengthLeg(static_cast<uint8_t>(key - '0'));
+        break;
       default:
         return;
     }
 
-    publishCurrentTwist();
+    publishCurrentState();
     printCurrentState(key);
   }
 
@@ -224,6 +238,27 @@ private:
     publisher_->publish(current_twist_);
   }
 
+  void publishControlState()
+  {
+    control_publisher_->publish(current_control_);
+  }
+
+  void publishCurrentState()
+  {
+    publishCurrentTwist();
+    publishControlState();
+  }
+
+  void toggleSpinMode()
+  {
+    current_control_.spin_mode = current_control_.spin_mode == 0 ? 1 : 0;
+  }
+
+  void setLengthLeg(uint8_t value)
+  {
+    current_control_.length_leg = value;
+  }
+
   void printHelp() const
   {
     std::cout << "\nKeyboard /cmd_vel controller started.\n"
@@ -231,6 +266,8 @@ private:
               << "  w/s : forward/backward, step " << linear_step_ << " m/s\n"
               << "  a/d : left/right translation, step " << linear_step_ << " m/s\n"
               << "  q/e : left/right rotation, step " << angular_step_ << " rad/s\n"
+              << "  r   : toggle spin_mode (0/1)\n"
+              << "  0-3 : set length_leg\n"
               << "  space: brake\n"
               << "  Ctrl+C: exit\n\n"
               << "Only one direction is active at a time.\n" << std::endl;
@@ -241,13 +278,18 @@ private:
     std::cout << "key[" << (key == ' ' ? "space" : std::string(1, key))
               << "] -> linear.x: " << current_twist_.linear.x
               << ", linear.y: " << current_twist_.linear.y
-              << ", angular.z: " << current_twist_.angular.z << std::endl;
+              << ", angular.z: " << current_twist_.angular.z
+              << ", spin_mode: " << static_cast<int>(current_control_.spin_mode)
+              << ", length_leg: " << static_cast<int>(current_control_.length_leg)
+              << std::endl;
   }
 
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher_;
+  rclcpp::Publisher<msg_process::msg::KeyboardControl>::SharedPtr control_publisher_;
   rclcpp::TimerBase::SharedPtr publish_timer_;
 
   geometry_msgs::msg::Twist current_twist_;
+  msg_process::msg::KeyboardControl current_control_;
 
   double linear_step_{0.1};
   double angular_step_{0.1};

@@ -8,6 +8,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(msg_process REQUIRED)
 
 add_subdirectory(serial_data)
 
@@ -19,6 +20,7 @@ ament_target_dependencies(send_process
     rclcpp
     std_msgs
     geometry_msgs
+    msg_process
 )
 
 target_link_libraries(send_process
