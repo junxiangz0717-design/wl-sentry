@@ -38,7 +38,7 @@ public:
     {
         this->serial_send_data_.vx = msg->linear.x; 
         // this->serial_send_data_.vy = msg->linear.y; 
-        this->serial_send_data_.wz = msg->angular.z/3.1416*180/100.0f; // 转换为度每秒，并缩小100倍以适应协议范围
+        this->serial_send_data_.wz = msg->angular.z/3.1416*180/1000.0f; // 转换为度每秒，并缩小100倍以适应协议范围
         this->WriteSerialData();
     }
 
