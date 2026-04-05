@@ -46,7 +46,7 @@ def generate_launch_description():
             name='static_transform_publisher_base_to_odin1',
             arguments=[
                 '0', '0', '0',               
-                '-2.673', '0.407', '-1.905', 
+                '0.687', '1.553', '0', 
                 'odin1_base_link',          
                 'odin1'                      
             ],
@@ -57,7 +57,7 @@ def generate_launch_description():
             executable='static_transform_publisher',
             name='static_transform_publisher_base_to_odin1',
             arguments=[
-                '0', '0', '0',               
+                '0.06', '0.058', '0',               
                 '0', '0', '0', 
                 'odin1',          
                 'base_link'                      

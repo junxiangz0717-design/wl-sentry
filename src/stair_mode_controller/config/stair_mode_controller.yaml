@@ -1,0 +1,18 @@
+stair_mode_controller:
+  ros__parameters:
+    map_frame: map
+    base_frame: base_link
+    control_topic: /keyboard_control
+    check_rate: 20.0
+
+    x_min: 0.0
+    x_max: 1.0
+    y_min: 0.0
+    y_max: 1.0
+
+    target_yaw_deg: 0.0
+    yaw_tolerance_deg: 10.0
+
+    flat_length_leg: 1
+    stair_length_leg: 2
+    spin_mode: 0
