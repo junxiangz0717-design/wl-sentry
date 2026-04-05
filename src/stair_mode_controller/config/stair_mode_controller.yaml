@@ -8,10 +8,10 @@ stair_mode_controller:
     x_min: 4.200
     x_max: 5.200
     y_min: 2.000
-    y_max: 3.500
+    y_max: 4.500
 
-    target_yaw_deg: 0.0
-    yaw_tolerance_deg: 10.0
+    target_yaw_deg: -90.0
+    yaw_tolerance_deg: 60.0
 
     flat_length_leg: 1
     stair_length_leg: 2

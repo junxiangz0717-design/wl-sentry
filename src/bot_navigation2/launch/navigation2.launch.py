@@ -13,7 +13,7 @@ def generate_launch_description():
     
     # 创建 Launch 配置
     use_sim_time = launch.substitutions.LaunchConfiguration(
-        'use_sim_time', default='true')
+        'use_sim_time', default='false')
     map_yaml_path = launch.substitutions.LaunchConfiguration(
         'map', default=os.path.join(bot_navigation2_dir, 'map', 'qingqing2026.yaml'))
     nav2_param_path = launch.substitutions.LaunchConfiguration(
@@ -58,7 +58,7 @@ def generate_launch_description():
             name='static_transform_publisher_base_to_odin1',
             arguments=[
                 '0.06', '-0.058', '0',               
-                '-1.5708', '0', '0', 
+                '-1.5', '0', '0', 
                 'odin1',          
                 'base_link'                      
             ],
