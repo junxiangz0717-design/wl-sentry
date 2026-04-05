@@ -27,5 +27,10 @@ install(DIRECTORY launch map config
   DESTINATION share/${PROJECT_NAME}
 )
 
+install(PROGRAMS
+  scripts/map_click_viewer
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 
 ament_package()

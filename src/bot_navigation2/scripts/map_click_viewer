@@ -1,0 +1,261 @@
+#!/usr/bin/env python3
+
+import argparse
+import math
+import sys
+from pathlib import Path
+import tkinter as tk
+from tkinter import filedialog, messagebox
+
+
+class MapClickViewer:
+    def __init__(self, root: tk.Tk, map_path: Path, resolution: float, zoom: int) -> None:
+        self.root = root
+        self.map_path = map_path
+        self.resolution = resolution
+        self.zoom = zoom
+
+        self.original_image = tk.PhotoImage(file=str(self.map_path))
+        self.image = self.original_image.zoom(self.zoom, self.zoom)
+        self.original_width = self.original_image.width()
+        self.original_height = self.original_image.height()
+        self.map_width = self.image.width()
+        self.map_height = self.image.height()
+
+        self.root.title(f"Map Click Viewer - {self.map_path.name}")
+        self.root.minsize(640, 480)
+
+        top_text = (
+            f"地图: {self.map_path} | 左下角坐标为 (0, 0) | "
+            f"分辨率: {self.resolution:.3f} m/pixel | "
+            f"显示缩放: {self.zoom}x | 左键点击地图查看坐标"
+        )
+        self.info_label = tk.Label(
+            self.root,
+            text=top_text,
+            anchor="w",
+            justify="left",
+            padx=8,
+            pady=6,
+        )
+        self.info_label.pack(fill="x")
+
+        canvas_frame = tk.Frame(self.root)
+        canvas_frame.pack(fill="both", expand=True)
+
+        self.canvas = tk.Canvas(canvas_frame, cursor="crosshair", highlightthickness=0)
+        self.canvas.pack(side="left", fill="both", expand=True)
+
+        y_scrollbar = tk.Scrollbar(canvas_frame, orient="vertical", command=self.canvas.yview)
+        y_scrollbar.pack(side="right", fill="y")
+        x_scrollbar = tk.Scrollbar(self.root, orient="horizontal", command=self.canvas.xview)
+        x_scrollbar.pack(fill="x")
+
+        self.canvas.configure(
+            xscrollcommand=x_scrollbar.set,
+            yscrollcommand=y_scrollbar.set,
+            scrollregion=(0, 0, self.map_width, self.map_height),
+        )
+        self.canvas.create_image(0, 0, anchor="nw", image=self.image)
+        self.canvas.bind("<Button-1>", self.on_click)
+        self.canvas.bind("<MouseWheel>", self.on_mouse_wheel)
+        self.canvas.bind("<Shift-MouseWheel>", self.on_shift_mouse_wheel)
+        self.canvas.bind("<Button-4>", self.on_linux_scroll_up)
+        self.canvas.bind("<Button-5>", self.on_linux_scroll_down)
+
+        self.status_label = tk.Label(
+            self.root,
+            text="点击地图后，这里会显示对应坐标。",
+            anchor="w",
+            justify="left",
+            padx=8,
+            pady=6,
+        )
+        self.status_label.pack(fill="x")
+
+        window_width = min(max(self.map_width + 32, 1000), 1600)
+        window_height = min(max(self.map_height + 96, 700), 1100)
+        self.root.geometry(f"{window_width}x{window_height}")
+
+    def on_click(self, event: tk.Event) -> None:
+        canvas_x = self.canvas.canvasx(event.x)
+        canvas_y = self.canvas.canvasy(event.y)
+
+        if not (0 <= canvas_x < self.map_width and 0 <= canvas_y < self.map_height):
+            return
+
+        pixel_x = min(int(math.floor(canvas_x / self.zoom)), self.original_width - 1)
+        pixel_y = min(int(math.floor(canvas_y / self.zoom)), self.original_height - 1)
+        world_x = pixel_x * self.resolution
+        world_y = (self.original_height - 1 - pixel_y) * self.resolution
+
+        self.canvas.delete("marker")
+        self.draw_marker(canvas_x, canvas_y, world_x, world_y)
+
+        self.status_label.config(
+            text=(
+                f"像素坐标: ({pixel_x}, {pixel_y}) | "
+                f"地图坐标: ({world_x:.3f}, {world_y:.3f}) m"
+            )
+        )
+
+    def draw_marker(self, canvas_x: float, canvas_y: float, world_x: float, world_y: float) -> None:
+        marker_size = 6
+        self.canvas.create_line(
+            canvas_x - marker_size,
+            canvas_y,
+            canvas_x + marker_size,
+            canvas_y,
+            fill="red",
+            width=2,
+            tags="marker",
+        )
+        self.canvas.create_line(
+            canvas_x,
+            canvas_y - marker_size,
+            canvas_x,
+            canvas_y + marker_size,
+            fill="red",
+            width=2,
+            tags="marker",
+        )
+
+        label_text = f"({world_x:.3f}, {world_y:.3f}) m"
+        text_id = self.canvas.create_text(
+            canvas_x + 12,
+            max(canvas_y - 18, 12),
+            text=label_text,
+            fill="red",
+            font=("TkDefaultFont", 11, "bold"),
+            anchor="w",
+            tags="marker",
+        )
+        bbox = self.canvas.bbox(text_id)
+        if bbox is not None:
+            dx = 0
+            dy = 0
+            margin = 8
+
+            if bbox[2] > self.map_width - margin:
+                dx = self.map_width - margin - bbox[2]
+            elif bbox[0] < margin:
+                dx = margin - bbox[0]
+
+            if bbox[3] > self.map_height - margin:
+                dy = self.map_height - margin - bbox[3]
+            elif bbox[1] < margin:
+                dy = margin - bbox[1]
+
+            if dx or dy:
+                self.canvas.move(text_id, dx, dy)
+                bbox = self.canvas.bbox(text_id)
+
+        if bbox is not None:
+            padding = 4
+            self.canvas.create_rectangle(
+                bbox[0] - padding,
+                bbox[1] - padding,
+                bbox[2] + padding,
+                bbox[3] + padding,
+                fill="white",
+                outline="red",
+                width=1,
+                tags="marker",
+            )
+            self.canvas.tag_raise(text_id)
+
+    def on_mouse_wheel(self, event: tk.Event) -> None:
+        self.canvas.yview_scroll(int(-event.delta / 120), "units")
+
+    def on_shift_mouse_wheel(self, event: tk.Event) -> None:
+        self.canvas.xview_scroll(int(-event.delta / 120), "units")
+
+    def on_linux_scroll_up(self, _event: tk.Event) -> None:
+        self.canvas.yview_scroll(-3, "units")
+
+    def on_linux_scroll_down(self, _event: tk.Event) -> None:
+        self.canvas.yview_scroll(3, "units")
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="显示 PGM 地图并在点击时标注坐标。")
+    parser.add_argument(
+        "map",
+        nargs="?",
+        help="PGM 地图文件路径。如果不传，则启动后弹出文件选择框。",
+    )
+    parser.add_argument(
+        "--resolution",
+        type=float,
+        default=0.05,
+        help="地图分辨率，单位米/像素，默认 0.05。",
+    )
+    parser.add_argument(
+        "--zoom",
+        type=int,
+        default=2,
+        help="地图显示放大倍数，默认 2。",
+    )
+    return parser.parse_args()
+
+
+def select_map_file(root: tk.Tk) -> Path | None:
+    selected = filedialog.askopenfilename(
+        title="选择 PGM 地图",
+        filetypes=[("PGM map", "*.pgm"), ("All files", "*.*")],
+    )
+    if not selected:
+        return None
+    return Path(selected).expanduser().resolve()
+
+
+def resolve_map_path(root: tk.Tk, path_arg: str | None) -> Path | None:
+    if path_arg:
+        return Path(path_arg).expanduser().resolve()
+    return select_map_file(root)
+
+
+def main() -> int:
+    args = parse_args()
+
+    try:
+        root = tk.Tk()
+    except tk.TclError as exc:
+        print(f"无法启动图形界面: {exc}", file=sys.stderr)
+        return 1
+
+    root.withdraw()
+    map_path = resolve_map_path(root, args.map)
+    if map_path is None:
+        root.destroy()
+        return 0
+
+    if not map_path.is_file():
+        messagebox.showerror("地图文件不存在", f"未找到地图文件:\n{map_path}")
+        root.destroy()
+        return 1
+
+    if map_path.suffix.lower() != ".pgm":
+        messagebox.showerror("文件类型错误", f"请选择 .pgm 地图文件:\n{map_path}")
+        root.destroy()
+        return 1
+
+    if args.zoom < 1:
+        messagebox.showerror("缩放参数错误", "--zoom 必须大于等于 1。")
+        root.destroy()
+        return 1
+
+    try:
+        MapClickViewer(root, map_path, args.resolution, args.zoom)
+    except tk.TclError as exc:
+        messagebox.showerror("地图加载失败", f"无法加载地图文件:\n{map_path}\n\n{exc}")
+        root.destroy()
+        return 1
+
+    root.deiconify()
+    root.mainloop()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
