@@ -6,22 +6,20 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 find_package(ament_cmake REQUIRED)
-find_package(geometry_msgs REQUIRED)
 find_package(msg_process REQUIRED)
+find_package(nav_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(tf2 REQUIRED)
-find_package(tf2_ros REQUIRED)
 
 add_executable(stair_mode_controller_node
   src/stair_mode_controller.cpp
 )
 
 ament_target_dependencies(stair_mode_controller_node
-  geometry_msgs
   msg_process
+  nav_msgs
   rclcpp
   tf2
-  tf2_ros
 )
 
 target_compile_features(stair_mode_controller_node PUBLIC cxx_std_17)

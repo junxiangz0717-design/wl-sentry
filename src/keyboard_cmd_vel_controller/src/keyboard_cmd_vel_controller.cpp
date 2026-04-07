@@ -240,7 +240,7 @@ private:
 
   void publishControlState()
   {
-    control_publisher_->publish(current_control_);
+    // control_publisher_->publish(current_control_);
   }
 
   void publishCurrentState()

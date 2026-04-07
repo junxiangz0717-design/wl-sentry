@@ -3,17 +3,16 @@
 <package format="3">
   <name>stair_mode_controller</name>
   <version>0.0.0</version>
-  <description>Publish leg length mode based on map/base_link pose inside a rectangular stair region.</description>
+  <description>Publish leg length mode based on high-rate odometry projected into a rectangular stair region in map coordinates.</description>
   <maintainer email="3035582883@qq.com">tianze</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend>geometry_msgs</depend>
   <depend>msg_process</depend>
+  <depend>nav_msgs</depend>
   <depend>rclcpp</depend>
   <depend>tf2</depend>
-  <depend>tf2_ros</depend>
 
   <exec_depend>ament_index_python</exec_depend>
   <exec_depend>launch</exec_depend>

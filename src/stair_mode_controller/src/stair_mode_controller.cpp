@@ -1,14 +1,9 @@
-#include <algorithm>
-#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <msg_process/msg/keyboard_control.hpp>
+#include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Quaternion.h>
-#include <tf2/exceptions.h>
-#include <tf2_ros/buffer.h>
-#include <tf2_ros/transform_listener.h>
 
-#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <functional>
@@ -54,14 +49,14 @@ class StairModeController : public rclcpp::Node
 {
 public:
   StairModeController()
-  : Node("stair_mode_controller"),
-    tf_buffer_(this->get_clock()),
-    tf_listener_(tf_buffer_)
+  : Node("stair_mode_controller")
   {
-    map_frame_ = declare_parameter("map_frame", "map");
-    base_frame_ = declare_parameter("base_frame", "base_link");
+    odom_topic_ = declare_parameter("odom_topic", "/odin/odometry_high");
     control_topic_ = declare_parameter("control_topic", "/keyboard_control");
-    check_rate_ = declare_parameter("check_rate", 10.0);
+
+    map_to_odom_x_ = declare_parameter("map_to_odom_x", 0.0);
+    map_to_odom_y_ = declare_parameter("map_to_odom_y", 0.0);
+    map_to_odom_yaw_deg_ = declare_parameter("map_to_odom_yaw_deg", 0.0);
 
     x_min_ = declare_parameter("x_min", 0.0);
     x_max_ = declare_parameter("x_max", 1.0);
@@ -74,58 +69,66 @@ public:
     stair_length_leg_ = declare_parameter("stair_length_leg", 2);
     spin_mode_ = declare_parameter("spin_mode", 0);
 
-    const auto qos = rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local();
+    const auto control_qos = rclcpp::QoS(rclcpp::KeepLast(1)).reliable().transient_local();
     control_publisher_ =
-      create_publisher<msg_process::msg::KeyboardControl>(control_topic_, qos);
+      create_publisher<msg_process::msg::KeyboardControl>(control_topic_, control_qos);
+
+    odom_subscription_ = create_subscription<nav_msgs::msg::Odometry>(
+      odom_topic_,
+      rclcpp::SensorDataQoS(),
+      std::bind(&StairModeController::odometryCallback, this, std::placeholders::_1));
 
     publishCurrentMode(flat_length_leg_, "startup");
-
-    const auto period = std::chrono::duration<double>(1.0 / std::max(check_rate_, 1.0));
-    timer_ = create_wall_timer(period, std::bind(&StairModeController::updateMode, this));
   }
 
 private:
-  void updateMode()
+  void odometryCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
   {
-    geometry_msgs::msg::TransformStamped transform;
+    const double odom_x = msg->pose.pose.position.x;
+    const double odom_y = msg->pose.pose.position.y;
+    const double odom_yaw = yawFromQuaternion(msg->pose.pose.orientation);
 
-    try {
-      transform = tf_buffer_.lookupTransform(map_frame_, base_frame_, tf2::TimePointZero);
-    } catch (const tf2::TransformException & ex) {
-      RCLCPP_WARN_THROTTLE(
-        get_logger(), *get_clock(), 2000,
-        "Failed to lookup transform %s -> %s: %s",
-        map_frame_.c_str(), base_frame_.c_str(), ex.what());
-      publishCurrentMode(flat_length_leg_, "tf_unavailable");
-      return;
-    }
+    const double map_to_odom_yaw = degToRad(map_to_odom_yaw_deg_);
+    const double cos_yaw = std::cos(map_to_odom_yaw);
+    const double sin_yaw = std::sin(map_to_odom_yaw);
 
-    const double x = transform.transform.translation.x;
-    const double y = transform.transform.translation.y;
-    const double yaw = yawFromQuaternion(transform.transform.rotation);
+    const double map_x = map_to_odom_x_ + cos_yaw * odom_x - sin_yaw * odom_y;
+    const double map_y = map_to_odom_y_ + sin_yaw * odom_x + cos_yaw * odom_y;
+    const double map_yaw = normalizeAngle(map_to_odom_yaw + odom_yaw);
 
     const bool inside_region =
-      x >= x_min_ && x <= x_max_ &&
-      y >= y_min_ && y <= y_max_;
+      map_x >= x_min_ && map_x <= x_max_ &&
+      map_y >= y_min_ && map_y <= y_max_;
 
     const double yaw_error =
-      normalizeAngle(yaw - degToRad(target_yaw_deg_));
+      normalizeAngle(map_yaw - degToRad(target_yaw_deg_));
     const bool heading_match =
       std::abs(radToDeg(yaw_error)) <= yaw_tolerance_deg_;
 
     const int desired_length_leg =
       inside_region && heading_match ? stair_length_leg_ : flat_length_leg_;
 
-    publishCurrentMode(desired_length_leg, inside_region, heading_match, x, y, yaw, yaw_error);
+    publishCurrentMode(
+      desired_length_leg,
+      inside_region,
+      heading_match,
+      odom_x,
+      odom_y,
+      map_x,
+      map_y,
+      map_yaw,
+      yaw_error);
   }
 
   void publishCurrentMode(
     int desired_length_leg,
     bool inside_region,
     bool heading_match,
-    double x,
-    double y,
-    double yaw,
+    double odom_x,
+    double odom_y,
+    double map_x,
+    double map_y,
+    double map_yaw,
     double yaw_error)
   {
     msg_process::msg::KeyboardControl control_msg;
@@ -140,11 +143,13 @@ private:
     last_length_leg_ = desired_length_leg;
     RCLCPP_INFO(
       get_logger(),
-      "length_leg switched to %d, position=(%.3f, %.3f), yaw=%.1f deg, yaw_error=%.1f deg, inside_region=%s, heading_match=%s",
+      "length_leg switched to %d, odom_position=(%.3f, %.3f), map_position=(%.3f, %.3f), map_yaw=%.1f deg, yaw_error=%.1f deg, inside_region=%s, heading_match=%s",
       desired_length_leg,
-      x,
-      y,
-      radToDeg(yaw),
+      odom_x,
+      odom_y,
+      map_x,
+      map_y,
+      radToDeg(map_yaw),
       radToDeg(yaw_error),
       inside_region ? "true" : "false",
       heading_match ? "true" : "false");
@@ -170,17 +175,15 @@ private:
       reason.c_str());
   }
 
-  tf2_ros::Buffer tf_buffer_;
-  tf2_ros::TransformListener tf_listener_;
-
   rclcpp::Publisher<msg_process::msg::KeyboardControl>::SharedPtr control_publisher_;
-  rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_subscription_;
 
-  std::string map_frame_;
-  std::string base_frame_;
+  std::string odom_topic_;
   std::string control_topic_;
 
-  double check_rate_{10.0};
+  double map_to_odom_x_{0.0};
+  double map_to_odom_y_{0.0};
+  double map_to_odom_yaw_deg_{0.0};
   double x_min_{0.0};
   double x_max_{1.0};
   double y_min_{0.0};
