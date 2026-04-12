@@ -109,7 +109,7 @@ controller_server:
       vx_max: 2.0
       vx_min: 0.0
       vy_max: 0.0
-      wz_max: 2.0
+      wz_max: 2.9
       iteration_count: 1
       prune_distance: 5.0
       transform_tolerance: 0.1
@@ -364,8 +364,8 @@ velocity_smoother:
     smoothing_frequency: 20.0
     scale_velocities: False
     feedback: "OPEN_LOOP"
-    max_velocity: [2.0, 0.0, 2.0]
-    min_velocity: [-2.0, 0.0, -2.0]
+    max_velocity: [2.0, 0.0, 3.0]
+    min_velocity: [-2.0, 0.0, -3.0]
     max_accel: [10.0, 0.0, 10.0]
     max_decel: [-10.0, 0.0, -10.0]
     odom_topic: "odom"
