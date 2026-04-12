@@ -58,7 +58,7 @@ def generate_launch_description():
             name='static_transform_publisher_base_to_odin1',
             arguments=[
                 '0.06', '-0.058', '0',               
-                '-1.5', '0', '0', 
+                '-1.5708', '0', '0', 
                 'odin1',          
                 'base_link'                      
             ],

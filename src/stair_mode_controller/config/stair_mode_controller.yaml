@@ -1,6 +1,6 @@
 stair_mode_controller:
   ros__parameters:
-    odom_topic: /odin/odometry_high
+    odom_topic: odin1/odometry_highfreq
     control_topic: /keyboard_control
 
     map_to_odom_x: 0.86
@@ -9,8 +9,8 @@ stair_mode_controller:
 
     x_min: 4.200
     x_max: 5.200
-    y_min: 2.000
-    y_max: 3.500
+    y_min: 1.950
+    y_max: 4.000
 
     target_yaw_deg: -90.0
     yaw_tolerance_deg: 60.0

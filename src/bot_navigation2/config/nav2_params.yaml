@@ -104,12 +104,12 @@ controller_server:
       model_dt: 0.05
       batch_size: 2000
       vx_std: 0.5
-      vy_std: 0.2
+      vy_std: 0.0
       wz_std: 0.6
       vx_max: 2.0
-      vx_min: -2.0
-      vy_max: 0.5
-      wz_max: 3.0
+      vx_min: 0.0
+      vy_max: 0.0
+      wz_max: 2.0
       iteration_count: 1
       prune_distance: 5.0
       transform_tolerance: 0.1
@@ -127,11 +127,9 @@ controller_server:
           "ConstraintCritic",
           "CostCritic",
           "GoalCritic",
-          "GoalAngleCritic",
           "PathAlignCritic",
           "PathFollowCritic",
           "PathAngleCritic",
-          "PreferForwardCritic",
         ]
       ConstraintCritic:
         enabled: true
@@ -142,16 +140,6 @@ controller_server:
         cost_power: 1
         cost_weight: 5.0
         threshold_to_consider: 2.5
-      GoalAngleCritic:
-        enabled: true
-        cost_power: 1
-        cost_weight: 3.0
-        threshold_to_consider: 1.0
-      PreferForwardCritic:
-        enabled: true
-        cost_power: 1
-        cost_weight: 5.0
-        threshold_to_consider: 1.0
       # ObstaclesCritic:
       #   enabled: true
       #   cost_power: 1
@@ -172,7 +160,7 @@ controller_server:
       PathAlignCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 23.0
+        cost_weight: 10.0
         max_path_occupancy_ratio: 0.05
         trajectory_point_step: 4
         threshold_to_consider: 0.5
@@ -182,10 +170,10 @@ controller_server:
         enabled: true
         cost_power: 1
         cost_weight: 5.0
-        offset_from_furthest: 5
+        offset_from_furthest: 10
         threshold_to_consider: 1.0
       PathAngleCritic:
-        enabled: true
+        enabled: false
         cost_power: 1
         cost_weight: 2.0
         offset_from_furthest: 4
