@@ -11,8 +11,8 @@ def generate_launch_description():
             output='screen',
             emulate_tty=True,
             parameters=[{
-                'linear_step': 0.5,
-                'angular_step': 0.4,
+                'linear_step': 0.1,
+                'angular_step': 0.1,
                 'max_linear_speed': 2.0,
                 'max_angular_speed': 3.0,
                 'publish_rate': 20.0,

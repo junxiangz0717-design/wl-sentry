@@ -103,13 +103,13 @@ controller_server:
       time_steps: 56
       model_dt: 0.05
       batch_size: 2000
-      vx_std: 0.5
+      vx_std: 0.35
       vy_std: 0.0
-      wz_std: 0.6
+      wz_std: 0.4
       vx_max: 2.0
       vx_min: 0.0
       vy_max: 0.0
-      wz_max: 2.9
+      wz_max: 3.0
       iteration_count: 1
       prune_distance: 5.0
       transform_tolerance: 0.1
@@ -173,7 +173,7 @@ controller_server:
         offset_from_furthest: 10
         threshold_to_consider: 1.0
       PathAngleCritic:
-        enabled: false
+        enabled: true
         cost_power: 1
         cost_weight: 2.0
         offset_from_furthest: 4
@@ -184,7 +184,7 @@ controller_server:
       #   enabled: true
       #   cost_power: 1
       #   cost_weight: 35.0
-      #   deadband_velocities: [0.05, 0.05, 0.05]
+      #   deadband_velocities: [0.05, 0.00, 0.1]
       # TwirlingCritic:
       #   enabled: true
       #   twirling_cost_power: 1
